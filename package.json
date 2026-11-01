@@ -15,6 +15,7 @@
     "test:sdk": "node --test --experimental-strip-types packages/sdk/test/*.test.ts",
     "test:db": "node --test --experimental-strip-types packages/database/test/*.test.ts",
     "test:e2e": "node --test --experimental-strip-types tests/*.test.ts",
+    "smoke": "./scripts/smoke.sh",
     "typecheck": "tsc -p tsconfig.json --noEmit && pnpm --filter @retainos/web typecheck",
     "db:migrate": "node --experimental-strip-types scripts/migrate.ts",
     "db:seed": "node --experimental-strip-types scripts/seed-demo.ts",

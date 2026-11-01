@@ -7,7 +7,14 @@ pnpm test:e2e     # 4 end-to-end journey tests
 pnpm build        # production build
 pnpm bench        # performance on your machine
 pnpm verify       # all of the above
+
+pnpm smoke        # every route against a running server (needs `pnpm dev` + `pnpm db:seed`)
 ```
+
+`pnpm smoke` requests all 35 routes, 24 of them authenticated, and fails on
+anything that is not 200. It catches the class of bug a typechecker and a unit
+test cannot: a page that compiles and renders in isolation but fails at
+runtime. It is how the null-prototype serialisation bug below was found.
 
 **426 tests passing.** No skipped tests, no `.only`, no snapshots.
 
@@ -90,4 +97,6 @@ Stated plainly:
 - **Accessibility.** No screen-reader or automated audit was run.
 - **Mobile viewports.** Built mobile-first, not verified in a browser at phone
   width.
+- **Route smoke testing in CI.** `pnpm smoke` needs a running server and a
+  seeded database; it is a local check, not a CI gate.
 - **Sustained or distributed load.** `pnpm bench` measures one machine.
