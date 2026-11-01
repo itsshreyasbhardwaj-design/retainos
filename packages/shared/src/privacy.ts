@@ -45,15 +45,40 @@ const DENY_KEY_PATTERNS: RegExp[] = [
   /\bdob\b|date[-_]?of[-_]?birth/i,
 ];
 
-/** Values that look like credentials regardless of the key they arrived under. */
+/**
+ * Values that look like credentials regardless of the key they arrived under.
+ *
+ * Matched against the value **as sent**. An earlier version stripped whitespace
+ * first, which made the opaque-blob pattern match any long sentence once its
+ * spaces were removed — so a perfectly ordinary error message or feedback title
+ * was refused as a secret. Only the card-number pattern needs separators
+ * removed, and it gets that treatment on its own below.
+ */
 const DENY_VALUE_PATTERNS: RegExp[] = [
   /^eyJ[A-Za-z0-9_-]{8,}\./, // JWT
   /\b(sk|rk)_(live|test)_[A-Za-z0-9]{12,}\b/, // provider secret keys
   /^gh[pousr]_[A-Za-z0-9]{20,}$/, // GitHub tokens
   /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
-  /^(?:\d[ -]?){13,19}$/, // bare card-like number
-  /^[A-Za-z0-9+/]{40,}={0,2}$/, // long opaque base64 blob
 ];
+
+/** Card-like numbers, which legitimately arrive with spaces or dashes. */
+const CARD_NUMBER_PATTERN = /^(?:\d[ -]?){13,19}$/;
+
+/**
+ * An opaque, high-entropy blob: the shape of an encoded secret.
+ *
+ * Shape alone is not enough. "xxxxxxxx…" and a long run of ordinary letters
+ * both fit the character class, so this also requires real character
+ * diversity. An encoded token of this length essentially always has 16 or more
+ * distinct characters; repeated or natural text does not.
+ */
+const OPAQUE_BLOB_SHAPE = /^[A-Za-z0-9+/]{40,}={0,2}$/;
+const OPAQUE_BLOB_MIN_DISTINCT = 16;
+
+function looksLikeOpaqueSecret(value: string): boolean {
+  if (!OPAQUE_BLOB_SHAPE.test(value)) return false;
+  return new Set(value).size >= OPAQUE_BLOB_MIN_DISTINCT;
+}
 
 export interface SensitiveFinding {
   key: string;
@@ -68,8 +93,11 @@ export function findSensitiveKeys(props: Record<string, unknown>): SensitiveFind
       continue;
     }
     if (typeof value === "string" && value.length >= 13) {
-      const compact = value.replace(/\s+/g, "");
-      if (DENY_VALUE_PATTERNS.some((re) => re.test(compact))) {
+      if (
+        CARD_NUMBER_PATTERN.test(value) ||
+        looksLikeOpaqueSecret(value) ||
+        DENY_VALUE_PATTERNS.some((re) => re.test(value))
+      ) {
         findings.push({ key, reason: "denied_value" });
       }
     }

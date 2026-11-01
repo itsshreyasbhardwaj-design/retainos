@@ -15,4 +15,5 @@ export * from "./insights.ts";
 export * from "./fixflow.ts";
 export * from "./reports.ts";
 export * from "./ask.ts";
+export * from "./friction.ts";
 export * from "./aggregate.ts";

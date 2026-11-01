@@ -7,6 +7,7 @@ import type { Db } from "./db.ts";
 import { jsonParse } from "./db.ts";
 import type { IngestScope } from "./scope.ts";
 import { getEventSpec } from "./schemas.ts";
+import { upsertAccount } from "./accounts-b2b.ts";
 import { consumeUsage } from "./entitlements.ts";
 import { RateLimiter } from "./ratelimit.ts";
 
@@ -159,7 +160,12 @@ export function originAllowed(scope: IngestScope, origin: string | null | undefi
 export function resolveIdentity(
   db: Db,
   scope: IngestScope,
-  input: { anonymousId?: string | null; externalId?: string | null; dims?: Record<string, string | null> },
+  input: {
+    anonymousId?: string | null;
+    externalId?: string | null;
+    accountKey?: string | null;
+    dims?: Record<string, string | null>;
+  },
   now = Date.now(),
 ): string | null {
   const anon = input.anonymousId?.trim() || null;
@@ -173,11 +179,13 @@ export function resolveIdentity(
           plan = COALESCE(?, plan), country = COALESCE(?, country),
           device_category = COALESCE(?, device_category),
           acquisition_source = COALESCE(?, acquisition_source),
-          product_version = COALESCE(?, product_version)
+          product_version = COALESCE(?, product_version),
+          account_key = COALESCE(?, account_key)
         WHERE id = ?`,
       [now, d.plan ?? null, d.country ?? null, d.device_category ?? null,
-       d.acquisition_source ?? null, d.product_version ?? null, id],
+       d.acquisition_source ?? null, d.product_version ?? null, input.accountKey ?? null, id],
     );
+    if (input.accountKey) upsertAccount(db, { orgId: scope.orgId, projectId: scope.projectId }, input.accountKey, now);
   };
 
   if (ext) {
@@ -419,9 +427,16 @@ export function ingestBatch(
       }
       const props = validated.value;
 
+      // The B2B account key comes from an explicit property. RetainOS never
+      // infers it from an email domain or any other signal.
+      const accountKey = typeof props.account_key === "string" && props.account_key.length <= 200
+        ? props.account_key
+        : null;
+
       const identityId = resolveIdentity(db, scope, {
         anonymousId: typeof raw.anonymousId === "string" ? raw.anonymousId : null,
         externalId: typeof raw.userId === "string" ? raw.userId : null,
+        accountKey,
         dims: {
           plan: typeof props.plan === "string" ? props.plan : null,
           country,

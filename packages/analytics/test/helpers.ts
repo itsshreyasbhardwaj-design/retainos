@@ -1,7 +1,7 @@
 import { Db, migrate } from "@retainos/database";
 import { newId } from "@retainos/shared";
 import { createUser, createOrganization, createProject } from "@retainos/database";
-import { resolveOrgScope, resolveProjectScope } from "@retainos/database";
+import { resolveOrgScope, resolveProjectScope, type ProjectScope } from "@retainos/database";
 
 export interface Harness {
   db: Db;
@@ -9,6 +9,7 @@ export interface Harness {
   projectId: string;
   userId: string;
   timezone: string;
+  scope: ProjectScope;
   /** Insert an event directly. Ingestion has its own suite; these tests are
    *  about the maths, and direct insertion lets them use timestamps far in the
    *  past that the ingestion endpoint would (correctly) reject. */
@@ -16,7 +17,10 @@ export interface Harness {
     identity: string,
     name: string,
     at: number,
-    extra?: { properties?: Record<string, unknown>; plan?: string; country?: string; device?: string; version?: string; source?: string; releaseId?: string },
+    extra?: {
+      properties?: Record<string, unknown>; plan?: string; country?: string; device?: string;
+      version?: string; source?: string; releaseId?: string; accountKey?: string;
+    },
   ) => void;
 }
 
@@ -33,18 +37,38 @@ export function harness(timezone = "UTC"): Harness {
   const project = createProject(db, orgScope.value, { name: "Acme App", timezone });
   if (!project.ok) throw new Error(project.error.message);
 
+  const scope = resolveProjectScope(db, user.value.id, project.value.projectId);
+  if (!scope.ok) throw new Error(scope.error.message);
+
   const orgId = org.value.orgId;
   const projectId = project.value.projectId;
   const identities = new Map<string, string>();
 
-  const identityFor = (external: string): string => {
+  const identityFor = (external: string, dims: Record<string, string | undefined> = {}): string => {
     const existing = identities.get(external);
-    if (existing) return existing;
+    if (existing) {
+      db.run(
+        `UPDATE identities SET
+           plan = COALESCE(?, plan), country = COALESCE(?, country),
+           device_category = COALESCE(?, device_category),
+           product_version = COALESCE(?, product_version),
+           acquisition_source = COALESCE(?, acquisition_source),
+           account_key = COALESCE(?, account_key)
+         WHERE id = ?`,
+        [dims.plan ?? null, dims.country ?? null, dims.device ?? null,
+         dims.version ?? null, dims.source ?? null, dims.accountKey ?? null, existing],
+      );
+      return existing;
+    }
     const id = newId("idn");
     db.run(
-      `INSERT INTO identities (id, org_id, project_id, external_id, first_seen_at, last_seen_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [id, orgId, projectId, external, 0, 0],
+      `INSERT INTO identities
+        (id, org_id, project_id, external_id, first_seen_at, last_seen_at,
+         plan, country, device_category, product_version, acquisition_source, account_key)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, orgId, projectId, external, 0, 0,
+       dims.plan ?? null, dims.country ?? null, dims.device ?? null,
+       dims.version ?? null, dims.source ?? null, dims.accountKey ?? null],
     );
     identities.set(external, id);
     return id;
@@ -54,7 +78,7 @@ export function harness(timezone = "UTC"): Harness {
   // resolve deterministically exactly as they would in production.
   let seq = 0;
   const event: Harness["event"] = (identity, name, at, extra = {}) => {
-    const identityId = identityFor(identity);
+    const identityId = identityFor(identity, extra as Record<string, string | undefined>);
     db.run(
       `INSERT INTO analytics_events
         (id, org_id, project_id, identity_id, name, occurred_at, received_at,
@@ -75,7 +99,7 @@ export function harness(timezone = "UTC"): Harness {
     );
   };
 
-  return { db, orgId, projectId, userId: user.value.id, timezone, event };
+  return { db, orgId, projectId, userId: user.value.id, timezone, scope: scope.value, event };
 }
 
 export const DAY = 86_400_000;

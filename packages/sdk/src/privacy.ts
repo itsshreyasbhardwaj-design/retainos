@@ -18,13 +18,29 @@ const DENY_KEY = [
   /keystroke|keylog/i, /\bdob\b|date[-_]?of[-_]?birth/i,
 ];
 
+/**
+ * Matched against the value as sent. Only the card pattern needs separators
+ * removed first; stripping whitespace before the others made any long sentence
+ * look like an opaque blob.
+ */
 const DENY_VALUE = [
   /^eyJ[A-Za-z0-9_-]{8,}\./,
   /\b(sk|rk)_(live|test)_[A-Za-z0-9]{12,}\b/,
   /^gh[pousr]_[A-Za-z0-9]{20,}$/,
   /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
-  /^(?:\d[ -]?){13,19}$/,
 ];
+
+const CARD_NUMBER = /^(?:\d[ -]?){13,19}$/;
+
+/**
+ * An opaque, high-entropy blob. Shape alone would also match a long run of one
+ * letter, so real character diversity is required too.
+ */
+const OPAQUE_BLOB_SHAPE = /^[A-Za-z0-9+/]{40,}={0,2}$/;
+
+function looksLikeOpaqueSecret(value: string): boolean {
+  return OPAQUE_BLOB_SHAPE.test(value) && new Set(value).size >= 16;
+}
 
 export function isSensitiveKey(key: string): boolean {
   return DENY_KEY.some((re) => re.test(key));
@@ -32,8 +48,7 @@ export function isSensitiveKey(key: string): boolean {
 
 export function isSensitiveValue(value: unknown): boolean {
   if (typeof value !== "string" || value.length < 13) return false;
-  const compact = value.replace(/\s+/g, "");
-  return DENY_VALUE.some((re) => re.test(compact));
+  return CARD_NUMBER.test(value) || looksLikeOpaqueSecret(value) || DENY_VALUE.some((re) => re.test(value));
 }
 
 export const MAX_STRING_LENGTH = 1024;

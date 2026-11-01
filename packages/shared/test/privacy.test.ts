@@ -24,6 +24,30 @@ describe("findSensitiveKeys", () => {
     assert.equal(findSensitiveKeys({ value: "4111 1111 1111 1111" })[0]?.reason, "denied_value");
   });
 
+  test("does not mistake ordinary long prose for an opaque secret", () => {
+    // Regression: the matcher used to strip whitespace before testing, so any
+    // sentence over 40 characters looked like a base64 blob once compacted.
+    for (const prose of [
+      "Cannot read property of undefined in template picker",
+      "The export button does nothing when I click it on the settings page",
+      "Users are confused by the onboarding template selection step",
+    ]) {
+      assert.deepEqual(findSensitiveKeys({ title: prose }), [], `refused legitimate prose: "${prose}"`);
+    }
+  });
+
+  test("still catches a genuine opaque blob with no whitespace", () => {
+    const blob = "QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVowMTIzNDU2Nzg5YWJjZGVm";
+    assert.equal(findSensitiveKeys({ payload: blob })[0]?.reason, "denied_value");
+  });
+
+  test("a long run of a single character is not a secret", () => {
+    // Shape alone would match; character diversity is what distinguishes an
+    // encoded token from a long label or a padded test value.
+    assert.deepEqual(findSensitiveKeys({ label: "x".repeat(5000) }), []);
+    assert.deepEqual(findSensitiveKeys({ label: "ab".repeat(100) }), []);
+  });
+
   test("leaves legitimate product properties alone", () => {
     const clean = {
       plan: "growth", feature: "first_project", step: 3, completed: true,

@@ -10,3 +10,5 @@ export * from "./improvements.ts";
 export * from "./revenue.ts";
 export * from "./releases.ts";
 export * from "./privacy-ops.ts";
+export * from "./errors.ts";
+export * from "./accounts-b2b.ts";
