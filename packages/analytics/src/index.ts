@@ -23,4 +23,5 @@ export * from "./health.ts";
 export * from "./playbooks.ts";
 export * from "./alerts.ts";
 export * from "./copilot.ts";
+export * from "./integrations.ts";
 export * from "./aggregate.ts";
