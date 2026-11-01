@@ -30,7 +30,7 @@ export function contributesToMrr(status: string): boolean {
   return MRR_BEARING_STATUSES.has(status);
 }
 
-interface SubState {
+export interface SubState {
   subscriptionId: string;
   currency: string;
   mrrMinor: number;
@@ -43,7 +43,7 @@ interface SubState {
  * Replay subscription events up to `at` and return each subscription's state.
  * The event log is the source of truth, so any snapshot can be rebuilt.
  */
-function replayTo(db: Db, projectId: string, at: number): Map<string, SubState> {
+export function replayTo(db: Db, projectId: string, at: number): Map<string, SubState> {
   const rows = db.all<{
     subscription_id: string; type: string; occurred_at: number; amount_minor: number;
     currency: string; interval: string | null;

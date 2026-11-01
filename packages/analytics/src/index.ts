@@ -18,4 +18,5 @@ export * from "./ask.ts";
 export * from "./friction.ts";
 export * from "./opportunity.ts";
 export * from "./instrumentation.ts";
+export * from "./revenue-impact.ts";
 export * from "./aggregate.ts";
