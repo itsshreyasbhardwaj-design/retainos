@@ -21,4 +21,6 @@ export * from "./instrumentation.ts";
 export * from "./revenue-impact.ts";
 export * from "./health.ts";
 export * from "./playbooks.ts";
+export * from "./alerts.ts";
+export * from "./copilot.ts";
 export * from "./aggregate.ts";
