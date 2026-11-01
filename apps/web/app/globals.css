@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/*
+ * RetainOS visual identity.
+ * Midnight navy ground, electric blue for action, cyan for analytical accents,
+ * emerald for confirmed positives. Chosen to read as precise and trustworthy
+ * rather than playful: this product tells founders unwelcome things.
+ */
+@theme {
+  --color-navy-950: #060b16;
+  --color-navy-900: #0b1220;
+  --color-navy-850: #0f1829;
+  --color-navy-800: #141f33;
+  --color-navy-700: #1d2b45;
+  --color-navy-600: #2a3b59;
+
+  --color-blue-600: #2563eb;
+  --color-blue-500: #3b82f6;
+  --color-blue-400: #60a5fa;
+
+  --color-cyan-500: #06b6d4;
+  --color-cyan-400: #22d3ee;
+
+  --color-emerald-500: #10b981;
+  --color-emerald-400: #34d399;
+
+  --color-amber-500: #f59e0b;
+  --color-rose-500: #f43f5e;
+
+  --color-offwhite: #f8fafc;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-navy-950);
+  color: var(--color-offwhite);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Focus visibility is a requirement, not a preference. */
+*:focus-visible {
+  outline: 2px solid var(--color-cyan-400);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Tabular figures everywhere a number is compared to another number. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+::selection {
+  background-color: color-mix(in oklab, var(--color-blue-500) 40%, transparent);
+}
+
+/* Scrollbars that do not fight the dark ground. */
+* {
+  scrollbar-color: var(--color-navy-700) transparent;
+  scrollbar-width: thin;
+}

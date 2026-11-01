@@ -1,0 +1,11 @@
+{
+  "name": "@retainos/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@retainos/analytics": "workspace:*",
+    "@retainos/database": "workspace:*",
+    "@retainos/shared": "workspace:*"
+  }
+}

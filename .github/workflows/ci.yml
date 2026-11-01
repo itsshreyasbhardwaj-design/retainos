@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          # node:sqlite and --experimental-strip-types both need a recent Node.
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: End-to-end journey tests
+        run: pnpm test:e2e
+
+      - name: Build
+        run: pnpm build
+        env:
+          # CI builds need a secret present; this one is throwaway and never
+          # signs a session anybody uses.
+          RETAINOS_SESSION_SECRET: ci-only-secret-not-used-for-any-real-session
+
+      - name: Benchmarks
+        # Informational: printed in the log, never a pass/fail gate, because
+        # CI hardware is too variable to assert a latency budget against.
+        run: pnpm bench
+        continue-on-error: true
+
+  seed:
+    name: Demo seed is reproducible
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Migrate and seed
+        run: |
+          pnpm db:migrate
+          pnpm db:seed
+      - name: Seeding twice must be refused, not duplicated
+        run: |
+          output=$(pnpm db:seed)
+          echo "$output"
+          echo "$output" | grep -q "already exists" || {
+            echo "Re-seeding should have been refused."
+            exit 1
+          }

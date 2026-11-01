@@ -1,0 +1,17 @@
+node_modules/
+.next/
+dist/
+out/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+.env.local
+.DS_Store
+coverage/
+.turbo/
+data/
+
+# Editor and tooling
+.claude/

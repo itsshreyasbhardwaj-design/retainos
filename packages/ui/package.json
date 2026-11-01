@@ -1,0 +1,8 @@
+{
+  "name": "@retainos/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Reserved for UI primitives extracted from apps/web.",
+  "main": "./src/index.ts"
+}

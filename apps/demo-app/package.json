@@ -1,0 +1,13 @@
+{
+  "name": "@retainos/demo-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A separate application that sends genuine events to a running RetainOS instance.",
+  "scripts": {
+    "start": "node --experimental-strip-types src/index.ts"
+  },
+  "dependencies": {
+    "@retainos/sdk": "workspace:*"
+  }
+}

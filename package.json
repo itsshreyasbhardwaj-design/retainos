@@ -1,0 +1,32 @@
+{
+  "name": "retainos",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "RetainOS \u2014 product intelligence and customer retention operating system",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types packages/*/test/*.test.ts",
+    "test:engines": "node --test --experimental-strip-types packages/analytics/test/*.test.ts",
+    "test:sdk": "node --test --experimental-strip-types packages/sdk/test/*.test.ts",
+    "test:db": "node --test --experimental-strip-types packages/database/test/*.test.ts",
+    "test:e2e": "node --test --experimental-strip-types tests/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit && pnpm --filter @retainos/web typecheck",
+    "db:migrate": "node --experimental-strip-types scripts/migrate.ts",
+    "db:seed": "node --experimental-strip-types scripts/seed-demo.ts",
+    "worker": "node --experimental-strip-types workers/analytics/index.ts",
+    "dev": "pnpm --filter @retainos/web dev",
+    "build": "pnpm --filter @retainos/web build",
+    "start": "pnpm --filter @retainos/web start",
+    "bench": "node --experimental-strip-types scripts/bench.ts",
+    "verify": "pnpm typecheck && pnpm test && pnpm test:e2e && pnpm build"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.7",
+    "typescript": "5.7.3"
+  }
+}

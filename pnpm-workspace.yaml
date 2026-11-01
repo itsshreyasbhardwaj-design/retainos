@@ -1,0 +1,10 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "workers/*"
+
+# pnpm 11 moved build approval here. sharp is Next.js's optional image
+# optimiser; RetainOS does not need it, but approving it keeps installs quiet.
+allowBuilds:
+  '0': sharp
+  sharp: set this to true or false
