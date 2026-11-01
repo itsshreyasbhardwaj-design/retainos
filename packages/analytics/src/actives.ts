@@ -57,7 +57,7 @@ export function activeUsers(
     firstSeen.set(r.identity_id, r.first_at);
   }
 
-  const rows = db.all<{ identity_id: string; occurred_at: number }>(
+  const rows = db.allFast<{ identity_id: string; occurred_at: number }>(
     `SELECT e.identity_id, e.occurred_at FROM analytics_events e
       WHERE e.project_id = ? AND e.occurred_at >= ? AND e.occurred_at <= ?${seg.sql}`,
     [projectId, input.from, input.to, ...seg.params],

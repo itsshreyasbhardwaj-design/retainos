@@ -31,7 +31,7 @@ documents.
 ## Verified
 
 - `pnpm typecheck` — clean across every package and the app
-- `pnpm test` — 420 passing
+- `pnpm test` — 422 passing
 - `pnpm test:e2e` — 4 passing, the full founder journey
 - `pnpm build` — 46 routes, production build succeeds
 - `pnpm bench` — measured, in `PERFORMANCE.md`
@@ -79,6 +79,9 @@ The test suite earned its place:
 8. `mrrSeries` read a field that did not exist on its parameter type.
 9. Retention took 30 seconds on 20,000 identities. Now 0.4 s.
 10. Activation issued 150 queries where one would do. Now 7.8× faster.
+11. `node:sqlite`'s null-prototype rows crashed the improvement detail page at
+    runtime — React cannot serialise them to a client component. Normalised at
+    the source, with a measured escape hatch for the hot paths.
 
 ## Honest assessment
 

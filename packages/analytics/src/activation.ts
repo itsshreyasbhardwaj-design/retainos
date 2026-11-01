@@ -164,7 +164,7 @@ export function activationFunnel(
     if (ids.length === 0) return out;
     const hasFilter = filter !== undefined && Object.keys(filter).length > 0;
 
-    const rows = db.all<{ identity_id: string; occurred_at: number; properties: string }>(
+    const rows = db.allFast<{ identity_id: string; occurred_at: number; properties: string }>(
       `SELECT e.identity_id, e.occurred_at, e.properties FROM analytics_events e
         WHERE e.project_id = ? AND e.name = ?
           AND e.occurred_at >= ? AND e.occurred_at <= ?

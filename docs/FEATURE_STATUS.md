@@ -12,7 +12,7 @@ five statuses, and the evidence behind it.
 - **Blocked** — cannot be completed in this environment, with the reason.
 
 Last updated at the end of the build that produced this repository.
-Test counts: **424 passing** (420 unit, 4 end-to-end), typecheck clean,
+Test counts: **426 passing** (422 unit, 4 end-to-end), typecheck clean,
 production build succeeds.
 
 ---

@@ -138,7 +138,7 @@ export function computeRetention(
   const CHUNK = 400;
   for (let i = 0; i < identityIds.length; i += CHUNK) {
     const chunk = identityIds.slice(i, i + CHUNK);
-    const rows = db.all<{ identity_id: string; occurred_at: number }>(
+    const rows = db.allFast<{ identity_id: string; occurred_at: number }>(
       `SELECT e.identity_id, e.occurred_at FROM analytics_events e
         WHERE e.project_id = ? AND e.identity_id IN (${chunk.map(() => "?").join(",")})${returnPredicate}${seg.sql}`,
       [projectId, ...chunk, ...returnParams, ...seg.params],

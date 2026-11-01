@@ -29,14 +29,42 @@ export class Db {
     this.raw.exec("PRAGMA busy_timeout = 5000");
   }
 
+  /**
+   * node:sqlite returns rows with a null prototype.
+   *
+   * That breaks two things in practice: `assert.deepEqual` against an object
+   * literal, and — more importantly — React Server Components, which refuse to
+   * serialise a null-prototype object across the boundary to a client
+   * component. Normalising here fixes it once rather than at every call site
+   * that might one day pass a row to the UI.
+   */
   all<T = Row>(sql: string, params: unknown[] = []): T[] {
+    const stmt = this.raw.prepare(sql);
+    const rows = stmt.all(...(params as never[])) as Row[];
+    return rows.map((row) => ({ ...row })) as T[];
+  }
+
+  /**
+   * `all` without the prototype normalisation.
+   *
+   * Measured escape hatch for the engine hot loops, where rows are consumed
+   * inside this process and never cross a server/client boundary. Normalising
+   * costs about 55% on a 210,000-event funnel scan (391 ms → 608 ms), which is
+   * worth paying everywhere except the few scans that dominate a request.
+   *
+   * Never return the result of this from a server component to a client one:
+   * React cannot serialise a null-prototype object, and it will fail at
+   * runtime rather than at compile time.
+   */
+  allFast<T = Row>(sql: string, params: unknown[] = []): T[] {
     const stmt = this.raw.prepare(sql);
     return stmt.all(...(params as never[])) as T[];
   }
 
   get<T = Row>(sql: string, params: unknown[] = []): T | undefined {
     const stmt = this.raw.prepare(sql);
-    return stmt.get(...(params as never[])) as T | undefined;
+    const row = stmt.get(...(params as never[])) as Row | undefined;
+    return row === undefined ? undefined : ({ ...row } as T);
   }
 
   run(sql: string, params: unknown[] = []): { changes: number; lastInsertRowid: number } {

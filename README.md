@@ -87,7 +87,7 @@ retainos/
 
 ```bash
 pnpm typecheck    # every package and the app
-pnpm test         # 420 unit tests across shared, database, analytics and the SDK
+pnpm test         # 422 unit tests across shared, database, analytics and the SDK
 pnpm test:e2e     # the full founder journey, end to end
 pnpm build        # production build
 pnpm bench        # performance, measured on your machine

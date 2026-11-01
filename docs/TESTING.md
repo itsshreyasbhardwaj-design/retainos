@@ -2,14 +2,14 @@
 
 ```bash
 pnpm typecheck    # every package and the app
-pnpm test         # 420 unit tests
+pnpm test         # 422 unit tests
 pnpm test:e2e     # 4 end-to-end journey tests
 pnpm build        # production build
 pnpm bench        # performance on your machine
 pnpm verify       # all of the above
 ```
 
-**424 tests passing.** No skipped tests, no `.only`, no snapshots.
+**426 tests passing.** No skipped tests, no `.only`, no snapshots.
 
 ## Distribution
 
@@ -18,7 +18,7 @@ pnpm verify       # all of the above
 | `shared/time` | 17 | Timezone bucketing, DST transitions, ISO weeks, leap years |
 | `shared/privacy` | 8 | The sensitive-data denylist, by key and by value |
 | `shared/validate` | 13 | Schema validation, naming, type coercion refusal |
-| `database/accounts` | 27 | Auth, lockout, sessions, keys, permissions |
+| `database/accounts` | 29 | Auth, lockout, sessions, keys, permissions |
 | `database/tenancy` | 14 | **Cross-tenant isolation** |
 | `database/ingest` | 42 | The complete rejection matrix, idempotency, identity |
 | `database/entitlements` | 21 | Plans, quotas, partial acceptance |
@@ -71,6 +71,10 @@ Worth recording, because they are the argument for the suite:
    all of them.
 6. **A contamination check that could never fire**, because the schema already
    made it impossible. Replaced with the inconsistency that can occur.
+7. **`node:sqlite` returns null-prototype rows**, which React Server Components
+   refuse to serialise to a client component — a runtime 500 on the improvement
+   detail page, invisible to the typechecker. `Db.all` now normalises, with a
+   measured `allFast` escape hatch for the engine hot paths.
 
 ## What is not tested
 

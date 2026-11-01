@@ -9,6 +9,28 @@ import { resolveOrgScope, resolveProjectScope } from "../src/scope.ts";
 import { authenticateWriteKey, authenticateSecretKey } from "../src/ingest.ts";
 import { freshDb, fixture, must, mustFail, PASSWORD } from "./helpers.ts";
 
+describe("row normalisation", () => {
+  test("rows come back as plain objects, so they can cross to a client component", () => {
+    const f = fixture();
+    const rows = f.db.all("SELECT id, name FROM projects");
+    assert.equal(rows.length, 1);
+    // node:sqlite returns null-prototype objects. React Server Components
+    // refuse to serialise those to a client component, failing at runtime
+    // rather than at compile time, so Db.all normalises them.
+    assert.equal(Object.getPrototypeOf(rows[0]!), Object.prototype);
+    assert.equal(Object.getPrototypeOf(f.db.get("SELECT id FROM projects")!), Object.prototype);
+    // deepEqual against an object literal works as a consequence.
+    assert.deepEqual(f.db.all<{ n: number }>("SELECT COUNT(*) AS n FROM projects"), [{ n: 1 }]);
+  });
+
+  test("allFast deliberately skips normalisation for the engine hot paths", () => {
+    const f = fixture();
+    const rows = f.db.allFast("SELECT id FROM projects");
+    // Documented escape hatch: never hand one of these to a client component.
+    assert.equal(Object.getPrototypeOf(rows[0]!), null);
+  });
+});
+
 describe("createUser", () => {
   test("creates a user and normalises the email", () => {
     const db = freshDb();

@@ -40,7 +40,7 @@ export function commonPaths(
 ): JourneyResult {
   const depth = Math.min(Math.max(input.depth ?? 4, 2), 8);
   const seg = segmentPredicate(input.segment, "e");
-  const rows = db.all<{ identity_id: string; name: string; occurred_at: number }>(
+  const rows = db.allFast<{ identity_id: string; name: string; occurred_at: number }>(
     `SELECT e.identity_id, e.name, e.occurred_at FROM analytics_events e
       WHERE e.project_id = ? AND e.occurred_at >= ? AND e.occurred_at <= ?${seg.sql}
       ORDER BY e.identity_id, e.occurred_at ASC, e.id ASC`,

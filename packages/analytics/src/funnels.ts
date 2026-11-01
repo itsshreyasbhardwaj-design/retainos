@@ -99,7 +99,7 @@ export function computeFunnel(
   // step, inside the window, matching the segment.
   const names = [...new Set(steps.map((s) => s.event))];
   const seg = segmentPredicate(input.segment, "e");
-  const rows = db.all<{ identity_id: string; name: string; occurred_at: number; id: string; properties: string }>(
+  const rows = db.allFast<{ identity_id: string; name: string; occurred_at: number; id: string; properties: string }>(
     `SELECT e.identity_id, e.name, e.occurred_at, e.id, e.properties
        FROM analytics_events e
       WHERE e.project_id = ?

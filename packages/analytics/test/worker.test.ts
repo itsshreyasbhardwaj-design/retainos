@@ -54,10 +54,10 @@ describe("recomputeDay", () => {
     h.event("u1", "signup_completed", Date.UTC(2026, 2, 14, 20));
     recomputeDay(h.db, h.projectId, "2026-03-15", "Asia/Kolkata");
     recomputeDay(h.db, h.projectId, "2026-03-14", "Asia/Kolkata");
-    // node:sqlite hands back null-prototype rows, so compare mapped plain objects.
+    // Db.all normalises rows to plain objects, so deepEqual works directly.
     const rows = h.db.all<{ day_key: string; active_users: number }>(
       "SELECT day_key, active_users FROM daily_active_aggregates ORDER BY day_key",
-    ).map((r) => ({ day_key: r.day_key, active_users: r.active_users }));
+    );
     assert.deepEqual(rows, [
       { day_key: "2026-03-14", active_users: 0 },
       { day_key: "2026-03-15", active_users: 1 },
@@ -79,7 +79,7 @@ describe("recomputeRevenueMonth", () => {
     recomputeRevenueMonth(h.db, h.projectId, "2026-03", "UTC");
     const rows = h.db.all<{ currency: string; mrr_minor: number }>(
       "SELECT currency, mrr_minor FROM revenue_snapshots WHERE month_key = '2026-03' ORDER BY currency",
-    ).map((r) => ({ currency: r.currency, mrr_minor: r.mrr_minor }));
+    );
     assert.deepEqual(rows, [
       { currency: "INR", mrr_minor: 99_900 },
       { currency: "USD", mrr_minor: 2_900 },
