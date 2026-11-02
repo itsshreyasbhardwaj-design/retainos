@@ -361,4 +361,22 @@ describe("rankOpportunities", () => {
       rankOpportunities(other.db, { orgId: other.orgId, projectId: other.projectId }, { now: NOW }), [],
     );
   });
+
+  test("reading the ranking does not write one", () => {
+    const { h, ids } = projectWithSeveralProblems();
+    rankOpportunities(h.db, ids, { now: NOW });
+    const stored = h.db.all<{ id: string; computed_at: number }>(
+      "SELECT id, computed_at FROM opportunity_scores WHERE project_id = ?", [h.projectId],
+    );
+    assert.ok(stored.length > 0);
+
+    // A page that renders the order on every view must not replace it.
+    const readOnly = rankOpportunities(h.db, ids, { now: NOW + DAY, persist: false });
+    assert.equal(readOnly.length, stored.length);
+    const after = h.db.all<{ id: string; computed_at: number }>(
+      "SELECT id, computed_at FROM opportunity_scores WHERE project_id = ?", [h.projectId],
+    );
+    assert.deepEqual(after.map((r) => r.id).sort(), stored.map((r) => r.id).sort());
+    assert.deepEqual(after.map((r) => r.computed_at), stored.map((r) => r.computed_at));
+  });
 });

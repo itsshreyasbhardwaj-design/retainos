@@ -399,9 +399,13 @@ export function setEstimate(
 export function rankOpportunities(
   db: Db,
   ids: { orgId: string; projectId: string },
-  opts: { now?: number } = {},
+  opts: { now?: number; persist?: boolean } = {},
 ): OpportunityScore[] {
   const now = opts.now ?? Date.now();
+  // Reading the ranking must not write one. A page that renders the order on
+  // every view would otherwise replace the stored ranking each time it was
+  // looked at, and a read-only caller has no org id to write with anyway.
+  const persist = opts.persist ?? true;
   const weights = getWeights(db, ids.projectId);
 
   const cases = db.all<{
@@ -458,6 +462,8 @@ export function rankOpportunities(
   }, weights));
 
   scored.sort((a, b) => b.score - a.score);
+
+  if (!persist) return scored;
 
   // Persist, replacing this project's previous ranking.
   db.run(

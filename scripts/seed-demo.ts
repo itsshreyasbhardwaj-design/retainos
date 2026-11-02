@@ -24,6 +24,8 @@ import {
   generateInsights, persistInsights, rebuildClusters, draftIssue, createIssueDraft,
   beforeAfter, saveImpactMeasurement, recomputeDay, recomputeRevenueMonth,
   computeFunnel, activationFunnel, computeRetention, mrrSnapshot,
+  refreshFrictionGraph, rankOpportunities, runInstrumentationDoctor, persistFindings,
+  ensureDefaultAlertRules, runAlertChecks, upsertHealthDefinition, generateBrief, saveBrief,
 } from "../packages/analytics/src/index.ts";
 import { newId, dayKey, addDays } from "../packages/shared/src/index.ts";
 
@@ -645,7 +647,50 @@ const retention = computeRetention(db, projectId, {
 });
 const mrr = mrrSnapshot(db, projectId, NOW);
 
-console.log(`  ${aggregated} days aggregated, ${persisted.created} findings generated\n`);
+console.log(`  ${aggregated} days aggregated, ${persisted.created} findings generated`);
+
+// --- product intelligence ---------------------------------------------------
+//
+// Run the engines once so a freshly seeded demo shows the product rather than
+// a row of empty states. Every result below is computed from the events above;
+// nothing here is written as a fixture.
+
+const friction = refreshFrictionGraph(db, { orgId, projectId }, {
+  timezone: TIMEZONE, now: NOW, lookbackDays: 28,
+});
+const ranked = rankOpportunities(db, { orgId, projectId }, { now: NOW });
+console.log(`  ${friction.created} friction case(s) detected, ${ranked.length} ranked`);
+
+const doctor = runInstrumentationDoctor(db, projectId, { timezone: TIMEZONE, now: NOW });
+const findings = persistFindings(db, { orgId, projectId }, doctor, NOW);
+console.log(`  instrumentation: ${doctor.checksRun} checks, ${findings.created} finding(s) stored`);
+
+ensureDefaultAlertRules(db, { orgId, projectId }, NOW);
+const alerts = runAlertChecks(db, { orgId, projectId }, { timezone: TIMEZONE, now: NOW });
+console.log(
+  `  alerts: ${alerts.candidates} candidate(s), ${alerts.fired.length} fired, ` +
+  `${alerts.suppressed.length} withheld`,
+);
+
+upsertHealthDefinition(db, { orgId, projectId }, {
+  name: "Default", isPrimary: true,
+  signals: [
+    { signal: "recent_activity", weight: 1 },
+    { signal: "activity_trend", weight: 0.8 },
+    { signal: "breadth_of_use", weight: 0.6 },
+    { signal: "activation_reached", weight: 0.9 },
+    { signal: "seat_engagement", weight: 0.7 },
+    { signal: "error_exposure", weight: 0.8 },
+    { signal: "unresolved_feedback", weight: 0.4 },
+    { signal: "billing_status", weight: 1 },
+  ],
+}, NOW);
+
+const brief = generateBrief(db, projectId, {
+  timezone: TIMEZONE, now: NOW, activationEvent: "project_created",
+});
+saveBrief(db, { orgId, projectId }, brief, NOW);
+console.log(`  brief: ${brief.headline}\n`);
 console.log("Demonstration project ready. Every figure below is computed from the seeded events.\n");
 
 if (funnel.ok) {

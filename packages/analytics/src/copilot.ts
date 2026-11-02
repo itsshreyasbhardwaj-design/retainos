@@ -169,7 +169,9 @@ export function generateBrief(db: Db, projectId: string, input: BriefInput): Exe
   ));
 
   // --- what is worth doing -------------------------------------------------
-  const ranked = rankOpportunities(db, { orgId: "", projectId }, { now }).slice(0, 3);
+  // Read-only: generating a brief must not rewrite the stored ranking.
+  const ranked = rankOpportunities(db, { orgId: "", projectId }, { now, persist: false })
+    .slice(0, 3);
   const cases = listFrictionCases(db, projectId, { limit: 50 });
   const byId = new Map(cases.map((c) => [c["id"] as string, c]));
   const opportunityFindings: BriefFinding[] = ranked.map((score) => {
