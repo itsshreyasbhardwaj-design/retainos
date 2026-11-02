@@ -96,6 +96,41 @@ describe("cross-tenant data reads", () => {
     assert.ok(!text.includes("Bravo secret bug report"));
     assert.ok(!text.includes("bob-user-1"));
   });
+
+  test("the export covers every project-scoped table", () => {
+    // Without this, the export quietly falls behind the schema: a feature ships
+    // with a new table, the table never reaches the export, and "your data is
+    // yours" stops being true without anyone noticing.
+    const t = twoTenants();
+    const bundle = must(exportProject(t.db, t.scopeA, { includeRawEvents: true }));
+    const exported = new Set(Object.keys(bundle.tables));
+
+    // Tables that belong to the organization or the installation rather than
+    // to one project, or that an export would be wrong to include.
+    const notProjectData = new Set([
+      "schema_migrations", "users", "sessions", "organizations", "organization_memberships",
+      "org_subscriptions", "usage_counters", "billing_records", "audit_events",
+      "data_deletion_requests", "notifications", "integrations", "analysis_runs",
+      "background_jobs", "aggregation_jobs", "project_keys", "projects", "billing_connections",
+      "identity_links", "event_rejections", "ingest_batches", "analytics_events",
+      "daily_active_aggregates", "event_daily_aggregates", "revenue_snapshots",
+      "feedback_item_tags", "release_improvements", "feedback_votes",
+      "experiment_assignments", "experiment_exposures",
+    ]);
+
+    const missing: string[] = [];
+    for (const row of t.db.all<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+    )) {
+      if (notProjectData.has(row.name) || exported.has(row.name)) continue;
+      const cols = t.db.all<{ name: string }>(`PRAGMA table_info(${row.name})`).map((c) => c.name);
+      // Only tables a project owns directly are required here; child tables
+      // reach the export through their parent and are listed under their own
+      // name when they do.
+      if (cols.includes("project_id")) missing.push(row.name);
+    }
+    assert.deepEqual(missing, [], `project-scoped tables missing from the export: ${missing.join(", ")}`);
+  });
 });
 
 describe("cross-tenant writes", () => {

@@ -112,6 +112,21 @@ export interface HealthConfig {
   now?: number;
 }
 
+/**
+ * The events a project has already declared as core, from its tracked
+ * features.
+ *
+ * Asking a team to list their core events twice — once as tracked features and
+ * once for health — is the kind of duplicated setup that leaves half the
+ * product permanently unconfigured.
+ */
+export function coreEventsFromFeatures(db: Db, projectId: string): string[] {
+  return db.all<{ event_name: string }>(
+    "SELECT event_name FROM tracked_features WHERE project_id = ? ORDER BY label",
+    [projectId],
+  ).map((r) => r.event_name).filter(Boolean);
+}
+
 // ---------------------------------------------------------------------------
 // Signal computation
 // ---------------------------------------------------------------------------
@@ -453,6 +468,11 @@ export function assessHealth(
   const ids = identityIdsFor(db, projectId, subject);
   const weights = { ...DEFAULT_SIGNAL_WEIGHTS, ...config.weights };
   const observedAt = config.now ?? Date.now();
+  // Fall back to whatever the project already declared as a tracked feature,
+  // so breadth is assessable without a second round of configuration.
+  const coreEvents = config.coreEvents && config.coreEvents.length > 0
+    ? config.coreEvents
+    : coreEventsFromFeatures(db, projectId);
 
   if (ids.length === 0) {
     return {
@@ -472,7 +492,7 @@ export function assessHealth(
   const signals: SignalObservation[] = [
     recentActivity(db, projectId, ids, w),
     activityTrend(db, projectId, ids, w),
-    breadthOfUse(db, projectId, ids, w, config.coreEvents),
+    breadthOfUse(db, projectId, ids, w, coreEvents),
     activationReached(db, projectId, ids, config.activationEvent),
     seatEngagement(db, projectId, subject, ids, w),
     errorExposure(db, projectId, ids, w),

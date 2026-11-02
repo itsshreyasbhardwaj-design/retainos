@@ -103,6 +103,22 @@ describe("creation", () => {
     assert.equal(listPlaybooks(h.db, h.projectId).length, 1);
   });
 
+  test("a funnel from an event to itself is refused", () => {
+    const h = harness();
+    const e = mustFail(upsertPlaybook(h.db, ids(h), {
+      ...BASE, triggerConfig: { fromEvent: "page_viewed", toEvent: "page_viewed" },
+    }, T0));
+    assert.match(e.message, /has no audience/);
+  });
+
+  test("a stalled-funnel trigger missing a step is refused", () => {
+    const h = harness();
+    const e = mustFail(upsertPlaybook(h.db, ids(h), {
+      ...BASE, triggerConfig: { fromEvent: "signup_completed" },
+    }, T0));
+    assert.match(e.message, /needs both the event/);
+  });
+
   test("a campaign-sized message cap is refused", () => {
     const h = harness();
     const e = mustFail(upsertPlaybook(h.db, ids(h), { ...BASE, maxPerUserTotal: 12 }, T0));

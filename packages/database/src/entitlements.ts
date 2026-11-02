@@ -154,3 +154,60 @@ export function usageSummary(db: Db, orgId: string, now = Date.now()) {
     }),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Tracked users: the pricing axis
+// ---------------------------------------------------------------------------
+
+export interface TrackedUsersCheck {
+  used: number;
+  limit: number;
+  remaining: number;
+  /** True when a new person can still be tracked this month. */
+  canTrackNew: boolean;
+  detail: string;
+}
+
+/**
+ * How many distinct people this organisation has tracked this calendar month.
+ *
+ * Counted rather than incremented, because the same person appearing on five
+ * days is one tracked user and a counter cannot know that. It is a COUNT
+ * DISTINCT over the month's events, which is why the result is cheap to read
+ * at the identity boundary and never at the per-event boundary.
+ */
+export function trackedUsersThisMonth(db: Db, orgId: string, now = Date.now()): number {
+  const period = usagePeriodKey(now);
+  const [year, month] = period.split("-").map(Number);
+  const start = Date.UTC(year!, month! - 1, 1);
+  const end = Date.UTC(month === 12 ? year! + 1 : year!, month === 12 ? 0 : month!, 1);
+  return db.get<{ n: number }>(
+    `SELECT COUNT(DISTINCT identity_id) AS n FROM analytics_events
+      WHERE org_id = ? AND received_at >= ? AND received_at < ?`,
+    [orgId, start, end],
+  )?.n ?? 0;
+}
+
+/**
+ * Whether a new person may be tracked.
+ *
+ * When the allowance is used up, people already being tracked keep working.
+ * Only new identities are refused, because cutting off the users a customer
+ * already has would break their product's analytics mid-month to make a
+ * billing point.
+ */
+export function checkTrackedUsers(
+  db: Db, orgId: string, now = Date.now(),
+): TrackedUsersCheck {
+  const limit = entitlementFor(db, orgId).limits.trackedUsersPerMonth;
+  const used = trackedUsersThisMonth(db, orgId, now);
+  const remaining = Math.max(0, limit - used);
+  return {
+    used, limit, remaining,
+    canTrackNew: used < limit,
+    detail: used < limit
+      ? `${used} of ${limit} tracked users this month.`
+      : `This month's tracked-user allowance of ${limit} is used up. People already being tracked are ` +
+        "unaffected; new ones are not recorded until the allowance resets or the plan changes.",
+  };
+}

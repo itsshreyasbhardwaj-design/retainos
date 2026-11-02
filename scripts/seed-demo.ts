@@ -148,18 +148,55 @@ for (const [key, label, event] of [
 let eventSeq = 0;
 const identityCache = new Map<string, string>();
 
+/**
+ * Synthetic B2B accounts.
+ *
+ * A share of demo users belong to a named workspace, exactly as a real
+ * customer's SDK would supply via `account_key`. Without these, account health
+ * has nothing to assess and the B2B half of the product cannot be seen — and
+ * RetainOS deliberately refuses to infer an account from an email domain, so
+ * the demo has to send them properly.
+ */
+const DEMO_ACCOUNTS = [
+  "acme-robotics", "northwind-labs", "lumen-health", "zephyr-logistics",
+  "cobalt-studio", "meridian-books",
+] as const;
+
+/** A stable, arbitrary mapping from a user to an account, or to no account. */
+function accountKeyFor(external: string): string | null {
+  let hash = 0;
+  for (let i = 0; i < external.length; i++) hash = (hash * 31 + external.charCodeAt(i)) >>> 0;
+  // Roughly two in five demo users are on a team; the rest are individuals,
+  // which is what a real B2B-and-self-serve product looks like.
+  if (hash % 5 >= 2) return null;
+  return DEMO_ACCOUNTS[hash % DEMO_ACCOUNTS.length]!;
+}
+
 function identityFor(external: string, dims: Record<string, string>): string {
   const cached = identityCache.get(external);
   if (cached) return cached;
   const id = newId("idn");
+  const accountKey = accountKeyFor(external);
   db.run(
     `INSERT INTO identities
       (id, org_id, project_id, anonymous_id, external_id, first_seen_at, last_seen_at, identified_at,
-       plan, country, device_category, acquisition_source, product_version)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       plan, country, device_category, acquisition_source, product_version, account_key)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, orgId, projectId, `anon-${external}`, external, 0, 0, 0,
-     dims.plan, dims.country, dims.device, dims.source, dims.version],
+     dims.plan, dims.country, dims.device, dims.source, dims.version, accountKey],
   );
+  if (accountKey) {
+    const existing = db.get<{ id: string }>(
+      "SELECT id FROM accounts WHERE project_id = ? AND account_key = ?", [projectId, accountKey],
+    );
+    if (!existing) {
+      db.run(
+        `INSERT INTO accounts (id, org_id, project_id, account_key, name, first_seen_at, last_seen_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [newId("acc"), orgId, projectId, accountKey, accountKey, START, START],
+      );
+    }
+  }
   identityCache.set(external, id);
   return id;
 }
@@ -182,6 +219,13 @@ function emit(external: string, name: string, at: number, dims: Record<string, s
        last_seen_at  = CASE WHEN ? > last_seen_at THEN ? ELSE last_seen_at END
      WHERE id = ?`,
     [at, at, at, at, identityId],
+  );
+  db.run(
+    `UPDATE accounts SET last_seen_at = ?
+      WHERE project_id = ?
+        AND account_key = (SELECT account_key FROM identities WHERE id = ?)
+        AND last_seen_at < ?`,
+    [at, projectId, identityId, at],
   );
 }
 

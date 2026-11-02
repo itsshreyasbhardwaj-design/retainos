@@ -194,6 +194,25 @@ export function upsertPlaybook(
     ));
   }
 
+  if (input.triggerKind === "funnel_stalled") {
+    const config = (input.triggerConfig ?? {}) as Record<string, unknown>;
+    const from = typeof config.fromEvent === "string" ? config.fromEvent : "";
+    const to = typeof config.toEvent === "string" ? config.toEvent : "";
+    if (!from || !to) {
+      return err(domainError(
+        "validation_failed",
+        "A stalled-funnel trigger needs both the event people did and the event they did not go on to do.",
+      ));
+    }
+    if (from === to) {
+      return err(domainError(
+        "validation_failed",
+        `"${from}" cannot be both the step people reached and the step they failed to reach. A funnel from ` +
+        "an event to itself has no audience, and enrolling nobody would look like the playbook working.",
+      ));
+    }
+  }
+
   if (input.kind === "cancellation_feedback") {
     if (input.triggerKind !== "subscription_state") {
       return err(domainError(

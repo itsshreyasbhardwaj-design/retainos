@@ -8,7 +8,7 @@ import { jsonParse } from "./db.ts";
 import type { IngestScope } from "./scope.ts";
 import { getEventSpec } from "./schemas.ts";
 import { upsertAccount } from "./accounts-b2b.ts";
-import { consumeUsage } from "./entitlements.ts";
+import { consumeUsage, checkTrackedUsers } from "./entitlements.ts";
 import { RateLimiter } from "./ratelimit.ts";
 
 export const MAX_EVENT_BYTES = Number(process.env.RETAINOS_MAX_EVENT_BYTES ?? 16_384);
@@ -52,6 +52,7 @@ export type RejectionReason =
   | "duplicate_event"
   | "timestamp_out_of_range"
   | "event_quota_exceeded"
+  | "tracked_user_limit_reached"
   | "deprecated_event"
   | "sensitive_properties_removed";
 
@@ -216,6 +217,9 @@ export function resolveIdentity(
         return unclaimed.id;
       }
     }
+    // A new person counts against the month's tracked-user allowance. People
+    // already being tracked are never cut off; only new ones wait.
+    if (!checkTrackedUsers(db, scope.orgId, now).canTrackNew) return null;
     // New identified user. The anonymous id is intentionally left off when it
     // already belongs to someone else, rather than stolen from them.
     const anonFree = anon
@@ -250,6 +254,7 @@ export function resolveIdentity(
     touch(existing.id);
     return existing.id;
   }
+  if (!checkTrackedUsers(db, scope.orgId, now).canTrackNew) return null;
   const id = newId("idn");
   const d = input.dims ?? {};
   db.run(
@@ -446,7 +451,20 @@ export function ingestBatch(
         },
       }, now);
       if (!identityId) {
-        reject("no_identity", { problem: "every event needs an anonymousId or a userId" });
+        // Two different failures look the same here, and telling them apart
+        // is the difference between "fix your SDK call" and "your plan is
+        // full". A developer staring at the inspector needs to know which.
+        const hadIdentifiers =
+          (typeof raw.anonymousId === "string" && raw.anonymousId.trim() !== "")
+          || (typeof raw.userId === "string" && raw.userId.trim() !== "");
+        if (hadIdentifiers) {
+          const tracked = checkTrackedUsers(db, scope.orgId, now);
+          reject("tracked_user_limit_reached", {
+            problem: tracked.detail, used: tracked.used, limit: tracked.limit,
+          });
+        } else {
+          reject("no_identity", { problem: "every event needs an anonymousId or a userId" });
+        }
         continue;
       }
 

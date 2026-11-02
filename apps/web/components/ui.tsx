@@ -219,7 +219,8 @@ export function Td({ children, align = "left", className }: { children?: ReactNo
 }
 
 export function Field({
-  label, name, type = "text", defaultValue, placeholder, hint, required, autoComplete, children,
+  label, name, type = "text", defaultValue, placeholder, hint, required, autoComplete,
+  step, min, max, children,
 }: {
   label: string;
   name: string;
@@ -229,6 +230,9 @@ export function Field({
   hint?: string;
   required?: boolean;
   autoComplete?: string;
+  step?: string | number;
+  min?: string | number;
+  max?: string | number;
   children?: ReactNode;
 }) {
   return (
@@ -238,6 +242,9 @@ export function Field({
         <input
           name={name}
           type={type}
+          step={step}
+          min={min}
+          max={max}
           defaultValue={defaultValue}
           placeholder={placeholder}
           required={required}

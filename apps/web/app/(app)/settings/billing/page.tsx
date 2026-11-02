@@ -80,7 +80,7 @@ export default async function Billing() {
                 <thead>
                   <tr>
                     <Th>Plan</Th><Th align="right">Monthly</Th><Th align="right">Annual</Th>
-                    <Th align="right">Projects</Th><Th align="right">Events/month</Th><Th align="right">Seats</Th><Th />
+                    <Th align="right">Projects</Th><Th align="right">Tracked users/month</Th><Th align="right">Seats</Th><Th />
                   </tr>
                 </thead>
                 <tbody>
@@ -97,7 +97,7 @@ export default async function Billing() {
                           : "—"}
                       </Td>
                       <Td align="right">{num(PLANS[id].limits.projects)}</Td>
-                      <Td align="right">{num(PLANS[id].limits.eventsPerMonth)}</Td>
+                      <Td align="right">{num(PLANS[id].limits.trackedUsersPerMonth)}</Td>
                       <Td align="right">{num(PLANS[id].limits.teamMembers)}</Td>
                       <Td align="right" />
                     </tr>

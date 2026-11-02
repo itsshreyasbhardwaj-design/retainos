@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PLANS, PLAN_ORDER, formatPaise, annualDiscountPercent } from "@retainos/shared";
+import {
+  PLANS, PLAN_ORDER, formatPaise, annualDiscountPercent, eventHeadroomRatio, PRICING_AXIS,
+} from "@retainos/shared";
 
 export const metadata: Metadata = { title: "Pricing" };
 
@@ -18,6 +20,14 @@ const FEATURE_ROWS: Array<{ key: keyof typeof PLANS.free.features; label: string
   { key: "onboardOs", label: "Onboarding builder" },
   { key: "weeklyBrief", label: "Weekly brief" },
   { key: "multiWorkspace", label: "Multiple client workspaces" },
+  { key: "frictionGraph", label: "FrictionGraph" },
+  { key: "opportunityEngine", label: "Opportunity engine" },
+  { key: "customerHealth", label: "Customer health" },
+  { key: "commandCenter", label: "Command centre" },
+  { key: "alerting", label: "Alerting" },
+  { key: "providerIntegrations", label: "Read from PostHog, Amplitude, Sentry" },
+  { key: "playbooks", label: "Retention playbooks (holdout-controlled)" },
+  { key: "revenueImpactStudio", label: "Revenue Impact Studio" },
   { key: "dataExport", label: "Data export" },
 ];
 
@@ -29,6 +39,20 @@ export default function Pricing() {
         Every limit below is enforced on the server. Data export stays available on every plan, including when a
         subscription lapses: your product data is yours, and holding it hostage would be a dark pattern.
       </p>
+
+      <div className="mt-6 rounded-xl border border-navy-700/70 bg-navy-900/50 px-5 py-4">
+        <p className="text-sm font-medium text-offwhite">{PRICING_AXIS.axisLabel} is the only thing you pay for</p>
+        <p className="mt-2 max-w-3xl text-xs leading-relaxed text-slate-400">{PRICING_AXIS.explanation}</p>
+        <p className="mt-2 max-w-3xl text-xs leading-relaxed text-slate-500">{PRICING_AXIS.eventCeilingNote}</p>
+        <ul className="mt-3 space-y-1">
+          {PRICING_AXIS.neverCharged.map((item) => (
+            <li key={item} className="flex gap-2 text-xs text-slate-400">
+              <span aria-hidden className="text-emerald-400">Never charged:</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
 
       <div className="mt-8 overflow-x-auto">
         <table className="w-full min-w-[640px] border-collapse text-sm">
@@ -57,7 +81,24 @@ export default function Pricing() {
               {PLAN_ORDER.map((id) => <td key={id} className="px-3 py-2.5 tnum text-slate-300">{PLANS[id].limits.projects}</td>)}
             </tr>
             <tr className="border-t border-navy-800">
-              <td className="px-3 py-2.5 text-slate-400">Events per month</td>
+              <td className="px-3 py-2.5 text-slate-400">
+                Tracked users per month
+                <span className="mt-0.5 block text-[11px] text-slate-500">What the price scales with.</span>
+              </td>
+              {PLAN_ORDER.map((id) => (
+                <td key={id} className="px-3 py-2.5 tnum text-slate-300">
+                  {PLANS[id].limits.trackedUsersPerMonth.toLocaleString("en-IN")}
+                </td>
+              ))}
+            </tr>
+            <tr className="border-t border-navy-800">
+              <td className="px-3 py-2.5 text-slate-400">
+                Event ceiling
+                <span className="mt-0.5 block text-[11px] text-slate-500">
+                  Abuse protection, not a price lever — {eventHeadroomRatio(PLANS.free)}+ events per tracked
+                  user on every plan.
+                </span>
+              </td>
               {PLAN_ORDER.map((id) => (
                 <td key={id} className="px-3 py-2.5 tnum text-slate-300">
                   {PLANS[id].limits.eventsPerMonth.toLocaleString("en-IN")}

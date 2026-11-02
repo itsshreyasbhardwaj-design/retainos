@@ -18,7 +18,14 @@ export interface NavGroup {
  * what are people telling us, what are we doing about it, did it work.
  */
 export const NAV: NavGroup[] = [
-  { label: "Overview", items: [{ href: "/dashboard", label: "Overview" }] },
+  {
+    label: "Overview",
+    items: [
+      { href: "/command", label: "Command centre" },
+      { href: "/dashboard", label: "Metrics overview" },
+      { href: "/alerts", label: "Alerts" },
+    ],
+  },
   {
     label: "What is happening",
     items: [
@@ -27,6 +34,7 @@ export const NAV: NavGroup[] = [
       { href: "/activation", label: "Activation" },
       { href: "/retention", label: "Retention" },
       { href: "/revenue", label: "Revenue" },
+      { href: "/health", label: "Customer health" },
     ],
   },
   {
@@ -38,9 +46,17 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    label: "What to fix",
+    items: [
+      { href: "/friction", label: "FrictionGraph" },
+      { href: "/opportunities", label: "Opportunities" },
+    ],
+  },
+  {
     label: "What we are doing",
     items: [
       { href: "/improvements", label: "Improvements" },
+      { href: "/playbooks", label: "Playbooks" },
       { href: "/releases", label: "Releases" },
       { href: "/onboarding-builder", label: "Onboarding" },
     ],
@@ -49,6 +65,7 @@ export const NAV: NavGroup[] = [
     label: "Did it work",
     items: [
       { href: "/impact", label: "ImpactLab" },
+      { href: "/revenue/impact", label: "Revenue impact" },
       { href: "/experiments", label: "Experiments" },
     ],
   },
@@ -64,6 +81,8 @@ export const NAV: NavGroup[] = [
     items: [
       { href: "/settings", label: "Settings" },
       { href: "/settings/sdk", label: "SDK & events" },
+      { href: "/settings/instrumentation", label: "Instrumentation doctor" },
+      { href: "/settings/sources", label: "Data sources" },
       { href: "/settings/integrations", label: "Integrations" },
       { href: "/settings/team", label: "Team" },
       { href: "/settings/billing", label: "Plan & usage" },

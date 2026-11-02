@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import {
   detectFrictionCases, persistFrictionCases, refreshFrictionGraph, deriveRelationships,
   listFrictionCases, getFrictionCase, transitionCase, canTransitionCase, linkCaseToImprovement,
-  revenueExposureFor, segmentConcentration, identitiesWhoStalled, RELATIONSHIP_STRENGTH,
-  type EvidenceItem,
+  revenueExposureFor, segmentConcentration, identitiesWhoStalled, caseIdentityIds,
+  RELATIONSHIP_STRENGTH, type EvidenceItem,
 } from "../src/friction.ts";
 import { upsertActivationDefinition } from "../src/activation.ts";
 import { recordError, submitFeedback, createImprovement, applyProviderEvent } from "@retainos/database";
@@ -413,6 +413,47 @@ describe("persistence", () => {
       String(getFrictionCase(h.db, h.projectId, caseId)!.record.status), "evidence_collected",
       "a human's decision must survive re-detection",
     );
+  });
+
+  test("a case remembers which people it is about, not just how many", () => {
+    const h = seeded();
+    refreshFrictionGraph(h.db, { orgId: h.orgId, projectId: h.projectId }, { timezone: "UTC", now: NOW });
+    const record = listFrictionCases(h.db, h.projectId)[0]!;
+    const members = caseIdentityIds(h.db, h.projectId, String(record.id));
+    // The count on the record is derived from the set, not asserted beside it.
+    assert.ok(members.length > 0, "a case with affected users must store them");
+    assert.equal(members.length, Number(record.affected_users));
+    assert.equal(new Set(members).size, members.length, "no duplicates");
+  });
+
+  test("membership is replaced on re-detection rather than accumulated", () => {
+    const h = seeded();
+    const ids = { orgId: h.orgId, projectId: h.projectId };
+    refreshFrictionGraph(h.db, ids, { timezone: "UTC", now: NOW });
+    const caseId = String(listFrictionCases(h.db, h.projectId)[0]!.id);
+    const before = caseIdentityIds(h.db, h.projectId, caseId).length;
+    refreshFrictionGraph(h.db, ids, { timezone: "UTC", now: NOW + HOUR });
+    assert.equal(caseIdentityIds(h.db, h.projectId, caseId).length, before);
+  });
+
+  test("another project cannot read a case's membership", () => {
+    const h = seeded();
+    const other = harness("UTC");
+    refreshFrictionGraph(h.db, { orgId: h.orgId, projectId: h.projectId }, { timezone: "UTC", now: NOW });
+    const caseId = String(listFrictionCases(h.db, h.projectId)[0]!.id);
+    assert.deepEqual(caseIdentityIds(h.db, other.projectId, caseId), []);
+  });
+
+  test("erasing a user removes them from every case", () => {
+    const h = seeded();
+    refreshFrictionGraph(h.db, { orgId: h.orgId, projectId: h.projectId }, { timezone: "UTC", now: NOW });
+    const caseId = String(listFrictionCases(h.db, h.projectId)[0]!.id);
+    const members = caseIdentityIds(h.db, h.projectId, caseId);
+    assert.ok(members.length > 0);
+    h.db.run("DELETE FROM identities WHERE id = ?", [members[0]!]);
+    const after = caseIdentityIds(h.db, h.projectId, caseId);
+    assert.equal(after.length, members.length - 1);
+    assert.ok(!after.includes(members[0]!));
   });
 
   test("evidence is replaced, not accumulated, across runs", () => {

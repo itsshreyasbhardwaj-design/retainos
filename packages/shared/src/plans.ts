@@ -4,12 +4,31 @@
  * These prices are commercial hypotheses, not validated willingness to pay.
  * They are defined as data so they can be changed without touching enforcement,
  * and every limit is enforced server-side in packages/database/entitlements.
+ *
+ * The pricing axis is deliberately *tracked users*, not events. Pricing on
+ * event volume punishes exactly the behaviour the product needs: a team that
+ * instruments carefully, adds the events an analysis requires, and backfills
+ * history gets a larger bill for doing the work properly, so they instrument
+ * less and the product becomes useless to them. Tracked users scale with the
+ * customer's own revenue, which is the only axis where paying more happens
+ * because the product is working.
+ *
+ * Events still have a ceiling, because an unbounded one would let a single
+ * runaway loop cost the host real money. It is set far above what careful
+ * instrumentation needs, so it functions as abuse protection rather than as a
+ * price lever.
  */
 export type PlanId = "free" | "starter" | "growth" | "agency";
 export type BillingInterval = "month" | "year";
 
 export interface PlanLimits {
   projects: number;
+  /** The pricing axis: distinct identities seen in a calendar month. */
+  trackedUsersPerMonth: number;
+  /**
+   * Fair-use ceiling, not a price lever. Set high enough that instrumenting
+   * thoroughly never costs more; it exists to stop a runaway loop.
+   */
   eventsPerMonth: number;
   /** Days of raw event retention. Aggregates outlive raw events. */
   rawEventRetentionDays: number;
@@ -22,6 +41,22 @@ export interface PlanLimits {
 
 export interface PlanFeatures {
   funnels: boolean;
+  /** Joins unconnected signals into cases. The product's centre of gravity. */
+  frictionGraph: boolean;
+  /** Explainable prioritisation across those cases. */
+  opportunityEngine: boolean;
+  /** Holdout-controlled retention playbooks. */
+  playbooks: boolean;
+  /** Explainable customer and account health. */
+  customerHealth: boolean;
+  /** Revenue impact with evidence classification. */
+  revenueImpactStudio: boolean;
+  /** Reading from PostHog, Amplitude, Sentry and the rest. */
+  providerIntegrations: boolean;
+  /** The founder brief and the command centre. */
+  commandCenter: boolean;
+  /** Alert rules and the alert quality report. */
+  alerting: boolean;
   retentionCohorts: boolean;
   advancedSegmentation: boolean;
   feedbackOs: boolean;
@@ -52,6 +87,14 @@ export interface Plan {
 
 const noFeatures: PlanFeatures = {
   funnels: false,
+  frictionGraph: false,
+  opportunityEngine: false,
+  playbooks: false,
+  customerHealth: false,
+  revenueImpactStudio: false,
+  providerIntegrations: false,
+  commandCenter: false,
+  alerting: false,
   retentionCohorts: false,
   advancedSegmentation: false,
   feedbackOs: false,
@@ -77,7 +120,8 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: "Individual developers instrumenting a first project.",
     limits: {
       projects: 1,
-      eventsPerMonth: 10_000,
+      trackedUsersPerMonth: 1_000,
+      eventsPerMonth: 1_000_000,
       rawEventRetentionDays: 30,
       savedFunnels: 1,
       teamMembers: 1,
@@ -85,7 +129,16 @@ export const PLANS: Record<PlanId, Plan> = {
       reportsPerMonth: 2,
       integrationSyncsPerMonth: 0,
     },
-    features: { ...noFeatures, funnels: true, feedbackOs: true, dataExport: true },
+    features: {
+      ...noFeatures,
+      funnels: true,
+      feedbackOs: true,
+      dataExport: true,
+      // Reliable data makes every other part of the product work, including
+      // for people who never pay, so the Instrumentation Doctor and the
+      // friction graph's read-only view are not held back.
+      frictionGraph: true,
+    },
   },
   starter: {
     id: "starter",
@@ -96,7 +149,8 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: "Early SaaS founders with paying users.",
     limits: {
       projects: 3,
-      eventsPerMonth: 100_000,
+      trackedUsersPerMonth: 10_000,
+      eventsPerMonth: 10_000_000,
       rawEventRetentionDays: 90,
       savedFunnels: 10,
       teamMembers: 3,
@@ -114,6 +168,12 @@ export const PLANS: Record<PlanId, Plan> = {
       weeklyBrief: true,
       onboardOs: true,
       dataExport: true,
+      frictionGraph: true,
+      opportunityEngine: true,
+      customerHealth: true,
+      commandCenter: true,
+      alerting: true,
+      providerIntegrations: true,
     },
   },
   growth: {
@@ -125,7 +185,8 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: "Growing software companies running releases and experiments.",
     limits: {
       projects: 10,
-      eventsPerMonth: 500_000,
+      trackedUsersPerMonth: 50_000,
+      eventsPerMonth: 50_000_000,
       rawEventRetentionDays: 180,
       savedFunnels: 50,
       teamMembers: 15,
@@ -148,6 +209,14 @@ export const PLANS: Record<PlanId, Plan> = {
       onboardOs: true,
       weeklyBrief: true,
       dataExport: true,
+      frictionGraph: true,
+      opportunityEngine: true,
+      customerHealth: true,
+      commandCenter: true,
+      alerting: true,
+      providerIntegrations: true,
+      playbooks: true,
+      revenueImpactStudio: true,
     },
   },
   agency: {
@@ -159,7 +228,8 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: "Agencies running retention for multiple client products.",
     limits: {
       projects: 40,
-      eventsPerMonth: 2_000_000,
+      trackedUsersPerMonth: 250_000,
+      eventsPerMonth: 250_000_000,
       rawEventRetentionDays: 365,
       savedFunnels: 200,
       teamMembers: 40,
@@ -182,9 +252,49 @@ export const PLANS: Record<PlanId, Plan> = {
       weeklyBrief: true,
       multiWorkspace: true,
       dataExport: true,
+      frictionGraph: true,
+      opportunityEngine: true,
+      customerHealth: true,
+      commandCenter: true,
+      alerting: true,
+      providerIntegrations: true,
+      playbooks: true,
+      revenueImpactStudio: true,
     },
   },
 };
+
+/**
+ * What the price scales with, and what it deliberately does not.
+ *
+ * Stated as data so the pricing page cannot drift from the enforcement, and
+ * so the claim is checkable: the event ceiling on every plan is at least a
+ * hundred times its tracked-user allowance, which is what makes "events are
+ * not the price lever" true rather than merely said.
+ */
+export const PRICING_AXIS = {
+  axis: "trackedUsersPerMonth" as keyof PlanLimits,
+  axisLabel: "Monthly tracked users",
+  explanation:
+    "RetainOS prices on the number of people you track in a month, not on how many events you send. " +
+    "Pricing on events punishes careful instrumentation: a team that adds the events an analysis needs, " +
+    "or backfills their history, would pay more for doing the work properly and would instrument less " +
+    "instead. Tracked users grow when your product grows.",
+  eventCeilingNote:
+    "Every plan has an event ceiling far above what thorough instrumentation needs. It exists so a runaway " +
+    "loop cannot run up a bill, not to charge you for being thorough.",
+  neverCharged: [
+    "Exporting your own data.",
+    "Deleting a user's data, or responding to a privacy request.",
+    "Seeing why your instrumentation is broken.",
+    "Adding another event name or another property.",
+  ],
+} as const;
+
+/** The ratio that makes the "not priced on events" claim checkable. */
+export function eventHeadroomRatio(plan: Plan): number {
+  return plan.limits.eventsPerMonth / plan.limits.trackedUsersPerMonth;
+}
 
 export const PLAN_ORDER: PlanId[] = ["free", "starter", "growth", "agency"];
 

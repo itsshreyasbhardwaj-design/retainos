@@ -726,6 +726,15 @@ function detectActivationFriction(ctx: DetectorContext): FrictionCandidate[] {
     limitations: [
       "A funnel drop-off shows where users stopped, not why. Nothing here establishes a cause.",
       funnel.value.definition.windowSemantics,
+      // Two honest counts of slightly different things. The funnel counts
+      // anyone who did not convert inside the window; the identity set counts
+      // anyone who never did it at all in the period. Reconciling them by
+      // picking one would hide a real difference, so both are stated.
+      ...(stalled.size === drop.lostUsers ? [] : [
+        `The funnel counts ${drop.lostUsers} users lost, while ${stalled.size} user(s) are attached to ` +
+        "this case. The difference is users who completed the step after the conversion window closed: " +
+        "the funnel counts them as lost, and the case does not attach them.",
+      ]),
     ],
     periodStart, periodEnd,
     affectedUserIds: stalled,
@@ -1118,6 +1127,10 @@ export function persistFrictionCases(
     db.run("DELETE FROM friction_evidence WHERE case_id = ?", [caseId]);
 
     const localToDb = new Map<string, string>();
+    // The membership set is replaced with the evidence it came from, so the
+    // case always describes the same people its current evidence covers.
+    db.run("DELETE FROM friction_case_users WHERE case_id = ?", [caseId]);
+
     for (const e of candidate.evidence) {
       const evidenceId = newId("fev");
       localToDb.set(e.localId, evidenceId);
@@ -1130,6 +1143,28 @@ export function persistFrictionCases(
           JSON.stringify({ ...e.snapshot, affectedUsersInSignal: e.userIds.size }),
           e.observedAt, now,
         ],
+      );
+      // Storing who, not just how many. Everything downstream — revenue
+      // impact, enrolment, account health — needs the set rather than the
+      // count, and recomputing it later would answer about different data.
+      for (const identityId of e.userIds) {
+        db.run(
+          `INSERT OR IGNORE INTO friction_case_users
+            (org_id, project_id, case_id, identity_id, evidence_id, added_at)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [ids.orgId, ids.projectId, caseId, identityId, evidenceId, now],
+        );
+      }
+    }
+
+    // A detector can know about affected users beyond any single piece of
+    // evidence; those belong to the case too.
+    for (const identityId of candidate.affectedUserIds) {
+      db.run(
+        `INSERT OR IGNORE INTO friction_case_users
+          (org_id, project_id, case_id, identity_id, evidence_id, added_at)
+         VALUES (?, ?, ?, ?, NULL, ?)`,
+        [ids.orgId, ids.projectId, caseId, identityId, now],
       );
     }
 
@@ -1305,4 +1340,19 @@ export function linkCaseToImprovement(
     [improvementId, now, caseId, projectId],
   );
   return r.changes === 0 ? err(domainError("not_found", "Friction case not found.")) : ok(true);
+}
+
+/**
+ * The identities a case is about.
+ *
+ * This is what makes a case actionable rather than merely informative: the
+ * revenue these people pay, the messages they could be sent, the accounts they
+ * belong to. The count on the case record is derived from this set, not the
+ * other way round.
+ */
+export function caseIdentityIds(db: Db, projectId: string, caseId: string): string[] {
+  return db.all<{ identity_id: string }>(
+    "SELECT identity_id FROM friction_case_users WHERE case_id = ? AND project_id = ?",
+    [caseId, projectId],
+  ).map((r) => r.identity_id);
 }

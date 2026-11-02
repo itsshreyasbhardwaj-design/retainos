@@ -163,6 +163,28 @@ describe("signals", () => {
     assert.match(breadth.whatWouldChangeIt, /really using the product/);
   });
 
+  test("core events fall back to the project's tracked features", () => {
+    const h = harness();
+    const id = healthyCustomer(h);
+    for (const [key, label, event] of [
+      ["sharing", "Note sharing", "report_exported"],
+      ["invites", "Invites", "member_invited"],
+    ] as const) {
+      h.db.run(
+        `INSERT INTO tracked_features (id, org_id, project_id, key, label, event_name, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [newId("ftr"), h.orgId, h.projectId, key, label, event, T0 - 200 * DAY],
+      );
+    }
+    // No coreEvents passed: the declared tracked features are used instead of
+    // leaving half the product unconfigured.
+    const a = assessHealth(h.db, h.projectId, { kind: "identity", id },
+      config({ coreEvents: undefined }));
+    const breadth = signal(a, "breadth_of_use");
+    assert.equal(breadth.hasEnoughData, true);
+    assert.match(breadth.observed, /of 2 core feature/);
+  });
+
   test("a customer who never activated is flagged", () => {
     const h = harness();
     for (let d = 1; d <= 25; d++) h.event("u", "page_viewed", T0 - d * DAY);

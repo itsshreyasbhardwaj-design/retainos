@@ -149,7 +149,7 @@ export default function Home() {
                   ) : null}
                   <ul className="mt-3 space-y-1 text-[11px] text-slate-400">
                     <li>{plan.limits.projects} project{plan.limits.projects === 1 ? "" : "s"}</li>
-                    <li>{plan.limits.eventsPerMonth.toLocaleString("en-IN")} events/month</li>
+                    <li>{plan.limits.trackedUsersPerMonth.toLocaleString("en-IN")} tracked users/month</li>
                     <li>{plan.limits.teamMembers} team member{plan.limits.teamMembers === 1 ? "" : "s"}</li>
                     <li>{plan.limits.rawEventRetentionDays} days raw event history</li>
                   </ul>

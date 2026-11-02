@@ -193,6 +193,49 @@ export function exportProject(
       `SELECT s.* FROM onboarding_steps s JOIN onboarding_flows fl ON fl.id = s.flow_id
         WHERE fl.project_id = ? LIMIT ?`,
     reports: "SELECT * FROM reports WHERE project_id = ? LIMIT ?",
+    onboarding_progress: "SELECT * FROM onboarding_progress WHERE project_id = ? LIMIT ?",
+
+    // Everything the product-intelligence layer stores is exportable too. An
+    // export that quietly omits the newest half of the product is not an
+    // export, and "your data is yours" has to keep being true as the product
+    // grows rather than only on the day the promise was made.
+    error_events: "SELECT * FROM error_events WHERE project_id = ? LIMIT ?",
+    accounts: "SELECT * FROM accounts WHERE project_id = ? LIMIT ?",
+    friction_cases: "SELECT * FROM friction_cases WHERE project_id = ? LIMIT ?",
+    friction_evidence:
+      `SELECT e.* FROM friction_evidence e JOIN friction_cases c ON c.id = e.case_id
+        WHERE c.project_id = ? LIMIT ?`,
+    friction_relationships:
+      `SELECT r.* FROM friction_relationships r JOIN friction_cases c ON c.id = r.case_id
+        WHERE c.project_id = ? LIMIT ?`,
+    friction_status_history:
+      `SELECT h.* FROM friction_status_history h JOIN friction_cases c ON c.id = h.case_id
+        WHERE c.project_id = ? LIMIT ?`,
+    friction_case_users: "SELECT * FROM friction_case_users WHERE project_id = ? LIMIT ?",
+    opportunity_weights: "SELECT * FROM opportunity_weights WHERE project_id = ? LIMIT ?",
+    opportunity_scores: "SELECT * FROM opportunity_scores WHERE project_id = ? LIMIT ?",
+    opportunity_score_factors:
+      `SELECT f.* FROM opportunity_score_factors f JOIN opportunity_scores s ON s.id = f.score_id
+        WHERE s.project_id = ? LIMIT ?`,
+    opportunity_estimates:
+      `SELECT e.* FROM opportunity_estimates e JOIN friction_cases c ON c.id = e.case_id
+        WHERE c.project_id = ? LIMIT ?`,
+    retention_playbooks: "SELECT * FROM retention_playbooks WHERE project_id = ? LIMIT ?",
+    playbook_enrollments: "SELECT * FROM playbook_enrollments WHERE project_id = ? LIMIT ?",
+    messaging_consent: "SELECT * FROM messaging_consent WHERE project_id = ? LIMIT ?",
+    health_definitions: "SELECT * FROM health_definitions WHERE project_id = ? LIMIT ?",
+    health_observations: "SELECT * FROM health_observations WHERE project_id = ? LIMIT ?",
+    revenue_impact_records: "SELECT * FROM revenue_impact_records WHERE project_id = ? LIMIT ?",
+    instrumentation_findings: "SELECT * FROM instrumentation_findings WHERE project_id = ? LIMIT ?",
+    provider_connections: "SELECT * FROM provider_connections WHERE project_id = ? LIMIT ?",
+    provider_sync_runs:
+      `SELECT r.* FROM provider_sync_runs r JOIN provider_connections c ON c.id = r.connection_id
+        WHERE c.project_id = ? LIMIT ?`,
+    import_rejections: "SELECT * FROM import_rejections WHERE project_id = ? LIMIT ?",
+    source_mappings: "SELECT * FROM source_mappings WHERE project_id = ? LIMIT ?",
+    alert_rules: "SELECT * FROM alert_rules WHERE project_id = ? LIMIT ?",
+    alert_events: "SELECT * FROM alert_events WHERE project_id = ? LIMIT ?",
+    executive_briefs: "SELECT * FROM executive_briefs WHERE project_id = ? LIMIT ?",
   };
 
   const tables: Record<string, Array<Record<string, unknown>>> = {};
