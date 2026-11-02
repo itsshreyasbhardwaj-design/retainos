@@ -11,9 +11,35 @@ five statuses, and the evidence behind it.
 - **Not implemented** — absent.
 - **Blocked** — cannot be completed in this environment, with the reason.
 
-Last updated at the end of the build that produced this repository.
-Test counts: **426 passing** (422 unit, 4 end-to-end), typecheck clean,
-production build succeeds.
+Last updated at the end of the product-excellence pass.
+Test counts: **748 passing** (744 unit and integration, 4 end-to-end),
+typecheck clean, production build succeeds, 44 routes and 3 detail routes
+return 200 against a seeded project.
+
+---
+
+## Product intelligence (this pass)
+
+| Capability | Status | Evidence |
+|---|---|---|
+| **FrictionGraph** — signals joined by shared keys | Completed and verified | 35 tests in `friction.test.ts`; exercised in a browser against the seeded project, where it detected 2 cases from real events |
+| Case membership (which people, not how many) | Completed and verified | Migration 008; 4 tests including erasure cascade and cross-project isolation |
+| **Opportunity engine** — nine transparent factors | Completed and verified | 30 tests in `opportunity.test.ts`; absent factors never imputed; reading a ranking does not write one |
+| **Instrumentation Doctor** — 13 checks | Completed and verified | 30 tests; run against the seeded project, where it correctly found a schema drift and an identify-without-anonymous-history advisory |
+| **Revenue Impact Studio** — 5 evidence classes | Completed and verified | 43 tests; recorded an observed figure end-to-end from a real friction case in the browser |
+| **Customer health** — 8 explained signals | Completed and verified | 37 tests; verified against 6 seeded B2B accounts, one of which correctly read as mixed signals on a failed payment |
+| **Retention playbooks** — holdout-controlled | Partially implemented | 45 tests cover approval, holdout, consent, caps, suppression and measurement. **Nothing sends**: `markDelivered` records a send but no delivery adapter exists. Approve → activate → enrol verified in a browser |
+| **Alert quality engine** | Completed and verified | 38 tests; run against the seeded project, where it correctly fired nothing because a 25% activation fall on 100 signups is p = 0.12 |
+| **Founder copilot / command centre** | Completed and verified | 18 tests; runs on local rules with no model, key or network; verified in a browser |
+| **Provider integrations** — provenance and dedupe | Partially implemented | 41 tests; the connection, authority, import, dedupe, provenance and revert paths are built and verified end-to-end against the real database. **No live HTTP probe exists**, so every provider except CSV correctly reports "never verified" |
+| CSV import | Completed and verified | Dependency-free parser; verified against the seeded database: historical dates accepted, bad name rejected by name, unmatched user rejected, re-import deduplicated, revert removing only imported rows |
+| Pricing on tracked users | Completed and verified | `PRICING_AXIS` as data; event headroom ≥100× asserted in a test; tracked users counted not incremented; new identities refused while existing ones keep working |
+| Data export covering every project table | Completed and verified | 52 tables; a test fails if a project-scoped table is added without reaching the export |
+| FixFlow Pro | Not implemented | `docs/FIXFLOW_PRO.md` |
+| AI SaaS retention intelligence | Not implemented | `docs/AI_SAAS_INTELLIGENCE.md` |
+| Activation Blueprints, Onboarding Optimizer, Value Scorecard, Voice Intelligence, Agency Command Center, Success Workflows, Release Intelligence, Operations Timeline, RetainOS Engineer | Not implemented | Listed in `docs/AI_SAAS_INTELLIGENCE.md` |
+| Real Product Benchmarking | Blocked | Would require aggregate data across customers that does not exist. Publishing figures without it would mean inventing them |
+| Business validation | Not implemented | No customer, no revenue, no pricing research, no interviews. `docs/BUSINESS_VALIDATION.md` |
 
 ---
 

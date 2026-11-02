@@ -24,10 +24,29 @@ forward:
 
 | Stage | What happens | Where |
 |---|---|---|
+| **Trust** | Thirteen checks on the data under the metrics, because bad instrumentation does not fail — it answers. | Instrumentation Doctor |
 | **Measure** | Events arrive. Funnels, activation and retention are computed from them. | Analytics, Activation, Retention |
-| **Investigate** | The largest drop-off is surfaced with the feedback that sits alongside it. | RetainAI |
+| **Connect** | Signals that touch the same people become one case, linked by shared keys rather than coincidence. | FrictionGraph |
+| **Choose** | Nine factors, each showing its measurement, its weight and its contribution. Argue with it specifically. | Opportunities |
 | **Fix** | Approve an improvement; RetainOS drafts a GitHub issue with the evidence frozen into it. | FixFlow |
-| **Prove** | After the release, compare the metric — with confounders named — or settle it with an experiment. | ImpactLab |
+| **Prove** | Compare the metric with confounders named, settle it with an experiment, or say plainly that you cannot tell. | ImpactLab, Revenue impact |
+| **Close the loop** | Tell the people who reported it — once, with a holdout, and never to stop someone leaving. | Playbooks |
+
+### The nine things it will not do
+
+Each is enforced in code with a test. They are the product, not a disclaimer.
+
+1. Report an effect it has not measured against a holdout
+2. Sum revenue figures of different evidence classes — there is no grand total
+3. Impute a missing input; an unanswered factor loses its weight instead
+4. Invent a connection between two signals with no shared key
+5. Claim a live integration it has not verified with a real probe
+6. Read an absence as a signal — no errors on a project that sends none proves nothing
+7. Alert on data it knows is broken
+8. Help you keep someone who wants to leave
+9. Charge you for instrumenting thoroughly
+
+Full reasoning: [`docs/PRODUCT_DIFFERENTIATION.md`](docs/PRODUCT_DIFFERENTIATION.md).
 
 The improvement you approve carries the measurement that found it all the way
 through to the result. That is one workflow, not four modules sharing a nav bar.
@@ -129,7 +148,28 @@ or **Blocked**. It is the honest answer to "does this actually work".
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Running it in production, and the costs |
 | [FEATURE_STATUS.md](docs/FEATURE_STATUS.md) | **Honest status of every capability** |
 | [ROADMAP.md](docs/ROADMAP.md) | What is next, and what will not be built |
-| [IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) | What this build delivered |
+| [IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) | What the first build delivered |
+
+### Product intelligence
+
+| Document | Covers |
+|---|---|
+| [FRICTION_GRAPH.md](docs/FRICTION_GRAPH.md) | How signals are joined, and what is never joined |
+| [OPPORTUNITY_ENGINE.md](docs/OPPORTUNITY_ENGINE.md) | The nine factors, and why a missing one is not a zero |
+| [INSTRUMENTATION_DOCTOR.md](docs/INSTRUMENTATION_DOCTOR.md) | Thirteen checks on the data under the metrics |
+| [REVENUE_IMPACT.md](docs/REVENUE_IMPACT.md) | Five evidence classes, and why there is no grand total |
+| [CUSTOMER_HEALTH.md](docs/CUSTOMER_HEALTH.md) | Eight signals, four states, and no score |
+| [RETENTION_PLAYBOOKS.md](docs/RETENTION_PLAYBOOKS.md) | Holdouts, consent, caps, and what it will not send |
+| [INTEGRATIONS.md](docs/INTEGRATIONS.md) | Provenance, deduplication, and reading without migrating |
+| [BILLING_AND_ENTITLEMENTS.md](docs/BILLING_AND_ENTITLEMENTS.md) | Why pricing is on tracked users, not events |
+| [PRODUCT_DIFFERENTIATION.md](docs/PRODUCT_DIFFERENTIATION.md) | What is different, with no comparative claims |
+| [COMPETITIVE_ANALYSIS.md](docs/COMPETITIVE_ANALYSIS.md) | Category patterns, and why no vendor is named |
+| [FIXFLOW_PRO.md](docs/FIXFLOW_PRO.md) | **Not implemented**, and what that would require |
+| [AI_SAAS_INTELLIGENCE.md](docs/AI_SAAS_INTELLIGENCE.md) | **Not implemented**, with everything else deferred |
+| [BUSINESS_VALIDATION.md](docs/BUSINESS_VALIDATION.md) | **Nothing has been validated**, and what would test it |
+| [NEXT_STEPS.md](docs/NEXT_STEPS.md) | What to do next, starting with no code at all |
+| [../RETAINOS_PRODUCT_AUDIT.md](RETAINOS_PRODUCT_AUDIT.md) | The audit that opened this pass |
+| [../RETAINOS_DELIVERY_REPORT.md](RETAINOS_DELIVERY_REPORT.md) | What was built, what was not, what is unverified |
 
 ---
 
