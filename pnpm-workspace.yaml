@@ -3,8 +3,11 @@ packages:
   - "packages/*"
   - "workers/*"
 
-# pnpm 11 moved build approval here. sharp is Next.js's optional image
-# optimiser; RetainOS does not need it, but approving it keeps installs quiet.
+# pnpm 11 moved build approval here, and `install --frozen-lockfile` fails
+# outright on an undeclared build script — so this has to name every one.
+#
+# sharp is Next.js's optional image optimiser. It is declined rather than
+# approved: RetainOS ships no images that need resizing, and declining keeps
+# the "no native builds" promise literally true instead of nearly true.
 allowBuilds:
-  '0': sharp
-  sharp: set this to true or false
+  sharp: false
